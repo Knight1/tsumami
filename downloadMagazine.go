@@ -18,11 +18,11 @@ type PdfResponse struct {
 	WaitSec     *int   `json:"waitSec"`
 }
 
+// heiseplus = ix, ct, make, tr, mac-and-i, ct-foto,
+// ct-wissen, ix-special, heise-online-sonderhefte
 func downloadMagazine(sessionCookie *http.Cookie, magazine string, year string, issue string) {
+	downloadThumbnail(magazine, year, issue)
 	outputPath := "magazines/" + magazine + "/" + year + "/"
-
-	// heiseplus = ix, ct, make, tr, mac-and-i, ct-foto,
-	// ct-wissen,ix-special, heise-online-sonderhefte
 
 	var res PdfResponse
 	var resp *http.Response
@@ -39,11 +39,17 @@ func downloadMagazine(sessionCookie *http.Cookie, magazine string, year string, 
 
 		resp, err = client.Do(req)
 		if err != nil {
-			panic(err)
+			fmt.Println("Error getting Magazine:", err)
+			time.Sleep(time.Second * 30)
+			continue
 		}
 		defer resp.Body.Close()
 
-		respBody, _ := io.ReadAll(resp.Body)
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println(err)
+			time.Sleep(time.Second * 30)
+		}
 
 		if resp.StatusCode != 200 {
 			fmt.Printf("Status: %s\n", resp.Status)
@@ -79,7 +85,9 @@ func downloadMagazine(sessionCookie *http.Cookie, magazine string, year string, 
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(res.DownloadURL)
+	if verbose {
+		fmt.Println(res.DownloadURL)
+	}
 
 	client := &http.Client{
 		Timeout: time.Second * 120,
@@ -97,7 +105,6 @@ func downloadMagazine(sessionCookie *http.Cookie, magazine string, year string, 
 		fmt.Printf("Error downloading %s: %s\n", res.DownloadURL, err)
 		return
 	}
-	//fmt.Println(string(respBody))
 
 	if !isValidPDF(respBody) {
 		fmt.Printf("Download failed: %s\n", resp.Status)
@@ -105,8 +112,6 @@ func downloadMagazine(sessionCookie *http.Cookie, magazine string, year string, 
 	}
 
 	filename := path.Base(res.DownloadURL)
-
-	respBody, _ = io.ReadAll(resp.Body)
 
 	err = os.MkdirAll(filepath.Dir(outputPath), 0755)
 	if err != nil {
@@ -121,8 +126,6 @@ func downloadMagazine(sessionCookie *http.Cookie, magazine string, year string, 
 			return
 		}
 	}
-
-	downloadThumbnail(magazine, year, issue)
 }
 
 func isValidPDF(data []byte) bool {

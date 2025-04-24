@@ -19,7 +19,7 @@ type Response struct {
 	} `json:"remote_login_urls"`
 }
 
-func loginSSO(email string, password string) {
+func loginSSO(email string, password string) (sessionCookie *http.Cookie, err error) {
 	// build multipart form
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -28,11 +28,8 @@ func loginSSO(email string, password string) {
 	writer.WriteField("username", email)
 	writer.WriteField("password", password)
 	writer.WriteField("ajax", "1")
-
-	// finalize
 	writer.Close()
 
-	// create request
 	req, _ := http.NewRequest("POST", LOGIN_URL, &body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
@@ -47,22 +44,29 @@ func loginSSO(email string, password string) {
 	}
 	defer LoginResponse.Body.Close()
 
-	respBody, _ := io.ReadAll(LoginResponse.Body)
+	respBody, err := io.ReadAll(LoginResponse.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	if LoginResponse.StatusCode != 200 {
 		fmt.Printf("Status: %s\nResponse Body:\n%s", LoginResponse.Status, string(respBody))
 		return
 	}
 
-	var sessionCookie *http.Cookie
 	for _, c := range LoginResponse.Cookies() {
 		if c.Name == "ssohls" {
 			sessionCookie = c
 		}
 	}
-	getAccessRights(sessionCookie)
 
-	downloadMagazine(sessionCookie, "ct", "2025", "9")
+	if sessionCookie == nil {
+		fmt.Printf("Cookie not found for %s", email)
+		return nil, nil
+	}
+
+	return sessionCookie, nil
 	/*
 		var resp Response
 		if err := json.Unmarshal(respBody, &resp); err != nil {

@@ -21,7 +21,11 @@ func getAccessRights(sessionCookie *http.Cookie) {
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	if resp.StatusCode != 200 {
 		fmt.Printf("Status: %s\n", resp.Status)

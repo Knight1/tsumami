@@ -30,11 +30,16 @@ func loginShop(url string, token string) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	if resp.StatusCode != 200 {
 		fmt.Printf("Status: %s\nresp Body:\n%s", resp.Status, string(respBody))
