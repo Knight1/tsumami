@@ -50,8 +50,11 @@ func downloadThumbnail(magazine string, year string, issue string) {
 
 	filename := path.Base(req.URL.Path)
 
-	// fmt.Println(filename)
-	// fmt.Println(string(respBody))
+	// Validate the filename to prevent directory traversal or invalid characters
+	if strings.Contains(filename, "/") || strings.Contains(filename, "\\") || strings.Contains(filename, "..") {
+		fmt.Println("Invalid filename:", filename)
+		return
+	}
 
 	if len(respBody) > 0 {
 		err = os.WriteFile(outputPath+filename, respBody, 0644)
